@@ -41,8 +41,6 @@ void	to_text(char *bin)
 	i = 7;
 	base = 1;
 	res = 0;
-	if (bin[0] == '1')
-		return ;
 	while (i >= 0)
 	{
 		if (bin[i] == '1')
@@ -70,10 +68,10 @@ void	sig_h(int sig)
 
 int	main(void)
 {
-	ft_putnbr(getpid());
-	write(1, "\n", 1);
 	signal(SIGUSR1, sig_h);
 	signal(SIGUSR2, sig_h);
+	ft_putnbr(getpid());
+	write(1, "\n", 1);
 	while (1)
 	{
 		pause();
