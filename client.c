@@ -12,45 +12,72 @@
 
 
 #include <unistd.h>
-#include <stdlib.h>
 #include <signal.h>
+#include <limits.h>
 
-int	ft_atoi(char *str)
+static void	ft_putstr_fd(char *s, int fd)
 {
-	int	res;
+	while (*s)
+		write(fd, s++, 1);
+}
+
+/*
+** Only a positive decimal PID is accepted: kill() treats 0 as "my whole
+** process group" and -1 as "every process I may signal".
+*/
+static int	parse_pid(char *str, pid_t *pid)
+{
+	long	res;
 
 	res = 0;
-	while (*str)
+	if (*str == '\0')
+		return (-1);
+	while (*str >= '0' && *str <= '9')
 	{
-		res = res * 10 + ((int)*str) - 48;
+		res = res * 10 + (*str - '0');
+		if (res > INT_MAX)
+			return (-1);
 		str++;
 	}
-	return (res);
+	if (*str != '\0' || res == 0)
+		return (-1);
+	*pid = (pid_t)res;
+	return (0);
+}
+
+static void	send_char(pid_t pid, unsigned char c)
+{
+	int	bit;
+
+	bit = 7;
+	while (bit >= 0)
+	{
+		if (c & (1 << bit))
+			kill(pid, SIGUSR2);
+		else
+			kill(pid, SIGUSR1);
+		usleep(1000);
+		bit--;
+	}
 }
 
 int	main(int argc, char **argv)
 {
-	int	pid_p;
-	int	i;
-	int	j;
+	pid_t	pid;
+	int		i;
 
-	if (argc < 3 || argc > 3)
-		exit (1);
-	pid_p = ft_atoi(argv[1]);
+	if (argc != 3 || parse_pid(argv[1], &pid) != 0)
+	{
+		ft_putstr_fd("Usage: ./client <server PID> <message>\n", 2);
+		return (1);
+	}
+	if (kill(pid, 0) == -1)
+	{
+		ft_putstr_fd("client: cannot signal that PID (not running?)\n", 2);
+		return (1);
+	}
 	i = 0;
 	while (argv[2][i])
-	{
-		j = sizeof(argv[2][i]) * 8 - 1;
-		while (j >= 0)
-		{
-			if (argv[2][i] & 1 << j)
-				kill(pid_p, SIGUSR2);
-			else
-				kill(pid_p, SIGUSR1);
-			j--;
-			usleep(1000);
-		}
-		++i;
-	}
+		send_char(pid, (unsigned char)argv[2][i++]);
 	return (0);
 }

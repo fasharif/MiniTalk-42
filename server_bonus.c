@@ -58,7 +58,7 @@ void	sig_h(int sig, siginfo_t *info, void *c)
 	static int	i = 0;
 	int			j;
 
-	c++;
+	(void)c;
 	if (sig == SIGUSR2)
 		binary[(i % 8)] = '1';
 	else if (sig == SIGUSR1)
@@ -81,14 +81,14 @@ int	main(void)
 {
 	struct sigaction	sa;
 
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_SIGINFO;
 	sa.sa_sigaction = sig_h;
+	sigaction(SIGUSR1, &sa, NULL);
+	sigaction(SIGUSR2, &sa, NULL);
 	ft_putnbr(getpid());
 	write(1, "\n", 1);
 	while (1)
-	{
-		sigaction(SIGUSR1, &sa, 0);
-		sigaction(SIGUSR2, &sa, 0);
 		pause();
-	}
 	return (0);
 }
