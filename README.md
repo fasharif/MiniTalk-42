@@ -40,6 +40,8 @@ sequenceDiagram
 - The client checks the PID before sending anything: it must be a positive number and a
   process the client is allowed to signal. `kill()` treats `0` as "my whole process group"
   and `-1` as "every process I may signal", so an unchecked PID could terminate them all.
+- In the bonus version the client waits up to a second for the server's acknowledgement. It
+  then prints `SIGNAL RECEIVED`, or reports that none arrived and exits with status 1.
 
 ## Build and run
 
@@ -53,9 +55,10 @@ make bonus    # server_bonus and client_bonus: end marker and acknowledgement
 ## Testing
 
 [`tests/run_e2e.sh`](tests/run_e2e.sh) starts each server, sends a message mixing ASCII,
-Arabic and emoji, and checks that the server printed it exactly. It also checks that invalid
-PIDs (`0`, `-1`, `/`, text, numbers too large to be a PID) and PIDs with no running process
-are rejected. GitHub Actions builds with GCC and Clang, with warnings treated as errors, and
+Arabic and emoji, and checks that the server printed it exactly and that `client_bonus` got
+its acknowledgement. It also checks that invalid PIDs (`0`, `-1`, `/`, text, numbers too
+large to be a PID) and PIDs with no running process are rejected, and that `client_bonus`
+reports a server that never replies. GitHub Actions builds with GCC and Clang, with warnings treated as errors, and
 runs the tests on every push and pull request.
 
 ## Limitations
@@ -63,5 +66,7 @@ runs the tests on every push and pull request.
 - Bits are not acknowledged one by one, so the client pauses between signals. On a very busy
   machine two identical signals can merge into one and corrupt a message.
 - One client at a time: two clients sending together would interleave their bits.
-- `client_bonus` exits straight after sending, so it can finish before the server's
-  acknowledgement arrives and miss printing `SIGNAL RECEIVED`.
+
+## License
+
+[MIT](LICENSE)

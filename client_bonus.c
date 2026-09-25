@@ -15,10 +15,13 @@
 #include <signal.h>
 #include <limits.h>
 
-static void	ft_putstr_fd(char *s, int fd)
+static volatile sig_atomic_t	g_ack;
+
+static int	fail(char *message)
 {
-	while (*s)
-		write(fd, s++, 1);
+	while (*message)
+		write(2, message++, 1);
+	return (1);
 }
 
 /*
@@ -48,7 +51,7 @@ static int	parse_pid(char *str, pid_t *pid)
 static void	handler(int sig)
 {
 	if (sig == SIGUSR1)
-		write(1, "SIGNAL RECEIVED\n", 16);
+		g_ack = 1;
 }
 
 static void	send_char(pid_t pid, unsigned char c)
@@ -73,19 +76,19 @@ int	main(int argc, char **argv)
 	int		i;
 
 	if (argc != 3 || parse_pid(argv[1], &pid) != 0)
-	{
-		ft_putstr_fd("Usage: ./client_bonus <server PID> <message>\n", 2);
-		return (1);
-	}
+		return (fail("Usage: ./client_bonus <server PID> <message>\n"));
 	if (kill(pid, 0) == -1)
-	{
-		ft_putstr_fd("client: cannot signal that PID (not running?)\n", 2);
-		return (1);
-	}
+		return (fail("client: cannot signal that PID (not running?)\n"));
 	signal(SIGUSR1, handler);
 	i = 0;
 	while (argv[2][i])
 		send_char(pid, (unsigned char)argv[2][i++]);
 	send_char(pid, '\0');
+	i = 0;
+	while (!g_ack && i++ < 100)
+		usleep(10000);
+	if (!g_ack)
+		return (fail("client: no acknowledgement from the server\n"));
+	write(1, "SIGNAL RECEIVED\n", 16);
 	return (0);
 }

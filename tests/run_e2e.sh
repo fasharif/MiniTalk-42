@@ -71,19 +71,27 @@ status=0
 ./client 2>/dev/null || status=$?
 [ "$status" -eq 1 ] || fail "client without arguments exited with status $status"
 
-echo "5. bonus server prints the message"
+echo "5. bonus server prints the message and the client receives its acknowledgement"
 # There is no acknowledgement per bit, so on a busy machine two identical signals can
 # merge and corrupt a message (see Limitations in the README). Allow three attempts.
 attempt=1
 while :; do
     start_server server_bonus
-    ./client_bonus "$server_pid" "$MESSAGE" > /dev/null
+    status=0
+    reply=$(./client_bonus "$server_pid" "$MESSAGE") || status=$?
     sleep 0.3
     got=$(received)
     stop_server
-    [ "$got" = "$MESSAGE" ] && break
+    [ "$got" = "$MESSAGE" ] && [ "$status" -eq 0 ] && [ "$reply" = "SIGNAL RECEIVED" ] && break
     attempt=$((attempt + 1))
-    [ "$attempt" -le 3 ] || fail "server_bonus printed '$got', expected '$MESSAGE'"
+    [ "$attempt" -le 3 ] || fail "server_bonus printed '$got'; client_bonus replied '$reply' (exit status $status)"
 done
+
+echo "6. client_bonus reports a server that never acknowledges"
+start_server server
+status=0
+./client_bonus "$server_pid" "hi" > /dev/null 2>&1 || status=$?
+stop_server
+[ "$status" -eq 1 ] || fail "client_bonus exited with status $status without an acknowledgement, expected 1"
 
 echo "All end-to-end checks passed"
